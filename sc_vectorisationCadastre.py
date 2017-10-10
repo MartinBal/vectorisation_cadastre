@@ -1,6 +1,5 @@
-##Polyg_1=name
-##cadastreraster=raster
-##vect=output vector
+# -*- coding: utf-8 -*-
+
 import processing
 
 
@@ -20,8 +19,8 @@ def vectorisationCadastre(r_cadastre, ref_projection='EPSG:3945' ):
 	v_parcelles0=processing.runalg('qgis:fieldcalculator', v_Parcelles0['OUTPUT'],'surf',1,10.0,3.0,True,'$area',None)
 	v_parcelles0=processing.runalg('qgis:fieldcalculator', v_parcelles0['OUTPUT_LAYER'],'p2_a',0,25.0,2.0,True,'($perimeter)^2/surf',None)
 
-    #coucheParcelles = iface.addVectorLayer(v_parcelles0['OUTPUT_LAYER'], "Parcelles_cadastrales", "ogr")
-    coucheParcelles = QgsVectorLayer(v_parcelles0['OUTPUT_LAYER'], "Parcelles_cadastrales", "ogr")
+    coucheParcelles = iface.addVectorLayer(v_parcelles0['OUTPUT_LAYER'], "Parcelles_cadastrales", "ogr")
+    #coucheParcelles = QgsVectorLayer(v_parcelles0['OUTPUT_LAYER'], "Parcelles_cadastrales", "ogr")
     delParcelles(coucheParcelles)
     #v_parcellesSelectionnees=processing.runalg('qgis:extractbyattribute', v_parcelles0['OUTPUT_LAYER'],'surf',2,'75',None)
 
