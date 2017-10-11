@@ -3,20 +3,33 @@
 import os
 import pickle
 
+from PyQt4.QtCore import *
+
+## Décallage dans les numéro de parcelles
+##  --> essayer en CC45?
+##  --> essayer par numpy?
+##  --> essayer par indexage
+
 #rasterReprojete=QgsMapLayerRegistry.instance().mapLayersByName("Reprojet")[0]
 
 def numeroterParcelles(rasterReprojete, fichier='Feuille CL0180000A01 AULAN - 026/26041010180000A01.LOC', dossier='/home/martin/Documents/Permagro/Mission1_PALUD/donnees'):
     os.chdir(dossier)
-    fichierLoc=open(fichier,r)
+    fichierLoc=open(fichier,'r')
 
-    chaine=fichierLoc.read(fichierLoc)
+    chaine=fichierLoc.read()
     listeChaines=chaine.split('\r\n')[:-1]
 
     tabLoc=[c.split(',') for c in listeChaines]
 
     emprise=rasterReprojete.extent().toString()
     largeur = rasterReprojete.width()
-    hauteur = rasterReprojete.heigth()
+    hauteur = rasterReprojete.height()
+
+    #pbl de callage
+    indexCalageX=0.99
+    indexCalageY=1
+    largeur = largeur * indexCalageX
+    hauteur = hauteur * indexCalageY
 
     tabEmprise=[angle.split(',') for angle in emprise.split(' : ')]
 
@@ -25,3 +38,26 @@ def numeroterParcelles(rasterReprojete, fichier='Feuille CL0180000A01 AULAN - 02
     ((int(y) * (float(tabEmprise[1][1])-float(tabEmprise[0][1])))/hauteur + float(tabEmprise[0][1])),\
     n] \
     for x,y,n in tabLoc]
+
+    ##Creation d'une couche de points
+    #Creation du champ:
+    fields = QgsFields()
+    fields.append(QgsField("NumParcelle", QVariant.String))
+
+    #Creation du writer de la couche
+    writer = QgsVectorFileWriter("ptsNumParcelles.shp", "UTF-8", fields, QGis.WKBPoint, QgsCoordinateReferenceSystem(2154), "ESRI Shapefile")
+
+    if writer.hasError() != QgsVectorFileWriter.NoError:
+        print "Error when creating shapefile: ",  w.errorMessage()
+
+    # Ajout des entitÃ©es:
+    for p in Coordonnees:
+        fet = QgsFeature()
+        fet.setGeometry(QgsGeometry.fromPoint(QgsPoint(p[0],p[1])))
+        fet.setAttributes([p[2]])
+        writer.addFeature(fet)
+
+    # delete the writer to flush features to disk
+    del writer
+
+    #layer.dataProvider().addAttributes([QgsField("mytext", QVariant.String), QgsField("myint", QVariant.Int)])
