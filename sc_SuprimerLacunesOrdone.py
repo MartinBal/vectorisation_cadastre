@@ -15,7 +15,7 @@ for f in orderedFeatures:
     fid=f.id()
     print(fid)
 
-    tmp_geom=f.geometry().buffer(5,5)
+    tmp_geom=f.geometry().buffer(1,5)
     gfeatures=layer.getFeatures()
     for g in gfeatures:
         if g.id() != fid:
@@ -23,4 +23,8 @@ for f in orderedFeatures:
             g_geom=g.geometry()
             if tmp_geom.intersects(g_geom):
                 tmp_geom = QgsGeometry(tmp_geom.difference(g_geom))
-    layer.dataProvider().changeGeometryValues({ fid : tmp_geom })
+    #Des geometries peuvent disparaitre complètement
+    if tmp_geom == None :
+        layer.dataProvider().deleteFeatures([fid])
+    else:
+        layer.dataProvider().changeGeometryValues({ fid : tmp_geom })
