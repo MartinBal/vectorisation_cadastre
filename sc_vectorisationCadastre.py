@@ -49,7 +49,10 @@ def vectorisationCadastre(rasterCadastre, ref_projection='EPSG:3945' ):
     vecteurCadastreTampon = iface.addVectorLayer(ref_vecteurCadastreTampon['OUTPUT_LAYER'], "ParcellesCadastrales", "ogr")
     netoyerParcelles(vecteurCadastreTampon)
 
-    #Comblement du polygonne fin
+    #Comblement du polygonne fin avec parcelle tampon
+
+    ajoutParcellesManquantes(vecteurCadastre, vecteurCadastreTampon)
+
     #Affinage
 
     #affectation des numéros
@@ -84,7 +87,6 @@ def comblerLacunes(vecteurCadastre, distBuff=0.75):
 
     for f in orderedFeatures:
         fid=f.id()
-        print(fid)
 
         tmp_geom=f.geometry().buffer(distBuff,5)
         gfeatures=vecteurCadastre.getFeatures()
@@ -102,7 +104,7 @@ def comblerLacunes(vecteurCadastre, distBuff=0.75):
 def vectorisationTampon(ref_rasterCadastre_reproj, distBuff=4, maxRing=250 ):
     '''fonction permettant de polygoniser le cadastre raster'''
 
-    ref_rasterCadastre=processing.runalg('saga:gridbuffer', ref_rasterCadastre['OUTPUT'],distBuff,0,None)
+    ref_rasterCadastre=processing.runalg('saga:gridbuffer', ref_rasterCadastre_reproj['OUTPUT'],distBuff,0,None)
     ref_rasterCadastre=processing.runalg('saga:invertdatanodata', ref_rasterCadastre['BUFFER'],None)
     ref_vecteurCadastre=processing.runalg('gdalogr:polygonize', ref_rasterCadastre['OUTPUT'],'DN',None)
 
@@ -112,6 +114,33 @@ def vectorisationTampon(ref_rasterCadastre_reproj, distBuff=4, maxRing=250 ):
     ref_vecteurCadastre=processing.runalg('qgis:fieldcalculator', ref_vecteurCadastre['OUTPUT_LAYER'],'p2_a',0,25.0,2.0,True,'($perimeter)^2/surf',None)
 
     return ref_vecteurCadastre
-    vecteurCadastreTampon = iface.addVectorLayer(ref_vecteurCadastre['OUTPUT_LAYER'], "ParcellesCadastrales", "ogr")
+    vecteurCadastreTampon = iface.addVectorLayer(ref_vecteurCadastre['OUTPUT_LAYER'], "ParcellesTampon", "ogr")
 
     netoyerParcelles(vecteurCadastreTampon)
+
+def ajoutParcellesManquantes(cadastreIncomplet, parcellesTampon):
+    '''Complete le cadastre avec les parcelles issues du traitement grossier du raster'''
+
+    parcellesTampon.setSelectedFeatures([])
+    selections=[]
+
+    for f in parcellesTampon.getFeatures():
+        for c in cadastreIncomplet.getFeatures():
+            if c.geometry().intersects(f.geometry()) :
+                selections.append( f.id() )
+                break
+    parcellesTampon.setSelectedFeatures(selections)
+    parcellesTampon.invertSelection()
+
+    for f in parcellesTampon.selectedFeatures():
+        tmp_geom=f.geometry().buffer(5,5)
+        cfeatures=cadastreIncomplet.getFeatures()
+        for c in cfeatures:
+            if c.geometry().intersects(tmp_geom):
+                tmp_geom = QgsGeometry(tmp_geom.difference(c.geometry()))
+    #Des geometries peuvent disparaitre completement
+        if tmp_geom != None :
+            #parcellesTampon.dataProvider().changeGeometryValues({ f.id() : tmp_geom })
+            f.setGeometry(tmp_geom)
+            cadastreIncomplet.dataProvider().addFeatures([f])
+            print(cadastreIncomplet.featureCount())

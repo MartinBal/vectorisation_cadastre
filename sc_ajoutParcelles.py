@@ -2,6 +2,7 @@
 
 def ajoutParcellesManquantes(cadastreIncomplet, parcellesTampon):
     '''Complete le cadastre avec les parcelles issues du traitement grossier du raster'''
+
     parcellesTampon.setSelectedFeatures([])
     selections=[]
     for f in parcellesTampon.getFeatures():
@@ -18,7 +19,7 @@ def ajoutParcellesManquantes(cadastreIncomplet, parcellesTampon):
 
     for f in parcellesTampon.selectedFeatures():
         print(f.id())
-        tmp_geom=f.geometry().buffer(4,5)
+        tmp_geom=f.geometry().buffer(5,5)
         cfeatures=cadastreIncomplet.getFeatures()
         for c in cfeatures:
             if c.geometry() != None and c.geometry().intersects(tmp_geom):
