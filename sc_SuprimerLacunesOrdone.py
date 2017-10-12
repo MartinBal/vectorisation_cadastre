@@ -4,7 +4,7 @@ import gdal
 
 #vecteurCadastre=QgsMapLayerRegistry.instance().mapLayersByName("Aulan1_poly_DN0_plus75_p2a75_simp02_fh")[0]
 
-def comblerLacunes(vecteurCadastre, distBuff=1):
+def comblerLacunes(vecteurCadastre, distBuff=0.75):
     '''Comble les lacunes entre les parcelles par iteration d'un tampon puis différenciation'''
     features=vecteurCadastre.getFeatures()
 
