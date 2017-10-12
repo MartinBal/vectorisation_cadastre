@@ -3,8 +3,10 @@
 #Pre-requis : qgis et SAGA
 
 import processing
+import gdal
 
 
+#rasterCadastre=QgsMapLayerRegistry.instance().mapLayersByName("26041010180000A010250002")[0]
 
 def vectorisationCadastre(rasterCadastre, ref_projection='EPSG:3945' ):
     '''fonction permettant de polygoniser le cadastre raster'''
@@ -31,7 +33,9 @@ def vectorisationCadastre(rasterCadastre, ref_projection='EPSG:3945' ):
     netoyerParcelles(vecteurCadastre)
 
     #Comblement lacunes
-    #suppression du plus grand
+    comblerLacunes(vecteurCadastre)
+
+    #Suppression du plus grand
     #Comblement des parcelles avec les parcelles Tampon
 
     ####Extraction des parcelles tampon (polygonisation grossière)
@@ -61,3 +65,34 @@ def netoyerParcelles(coucheParcelles, surfMax1=75, surfMax2=100, p2_aMax=75):
     features=coucheParcelles.getFeatures()
     idsToDelete=[f.id() for f in features if f['surf']<surfMax1 or (f['surf']<surfMax2 and f['p2_a']<p2_aMax)]
     coucheParcelles.dataProvider().deleteFeatures(idsToDelete)
+
+def comblerLacunes(vecteurCadastre, distBuff=0.75):
+    '''Comble les lacunes entre les parcelles par iteration d'un tampon puis différenciation'''
+    features=vecteurCadastre.getFeatures()
+
+    #Ordonner les entités de la plus grande à la plus petite
+    #N.B. Ordonner les entités permet de faire ressortir les petites entités incluses et recouvertes par fillholes
+    orderedFeatures=[]
+    for f in features:
+        i=0
+        while i<len(orderedFeatures) and f['surf']<orderedFeatures[i]['surf']:
+            i+=1
+        orderedFeatures.insert(i,f)
+
+
+    for f in orderedFeatures:
+        fid=f.id()
+        print(fid)
+
+        tmp_geom=f.geometry().buffer(distBuff,5)
+        gfeatures=vecteurCadastre.getFeatures()
+        for g in gfeatures:
+            if g.id() != fid:
+                g_geom=g.geometry()
+                if tmp_geom.intersects(g_geom):
+                    tmp_geom = QgsGeometry(tmp_geom.difference(g_geom))
+        #Des geometries peuvent disparaitre complètement
+        if tmp_geom == None :
+            vecteurCadastre.dataProvider().deleteFeatures([fid])
+        else:
+            vecteurCadastre.dataProvider().changeGeometryValues({ fid : tmp_geom })
