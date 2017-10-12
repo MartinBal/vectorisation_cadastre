@@ -35,7 +35,13 @@ def vectorisationCadastre(rasterCadastre, ref_projection='EPSG:3945' ):
     #Comblement lacunes
     comblerLacunes(vecteurCadastre)
 
-    #Suppression du plus grand
+    #Suppression de la parcelle cadre
+    features=vecteurCadastre.getFeatures()
+    featCadre=features.next()
+    for f in features:
+        if f['surf']>featCadre['surf']: featCadre=f
+    vecteurCadastre.dataProvider().deleteFeatures([featCadre.id()])
+
     #Comblement des parcelles avec les parcelles Tampon
 
     ####Extraction des parcelles tampon (polygonisation grossière)
