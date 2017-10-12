@@ -1,6 +1,42 @@
 # -*- coding: utf-8 -*-
 
+#Pre-requis : qgis et SAGA
+
 import processing
+
+def vectorisationCadastre(r_cadastre, ref_projection='EPSG:3945' ):
+	'''fonction permettant de polygoniser le cadastre raster'''
+
+    #reprojection du cadastre en RGF93 - Lambert93 (EPSG : 2154)
+
+    #### Polygonisation finne
+    #polygonisation
+    #extraire DN=0
+    #calcul des champs surface et p2_a
+    #Affichage de la couche
+    #Suppression des artéfactes (s<75 ou s<100 et p2_a<75)
+    #Suppression des anneaux fh200
+    #simplification 0,25
+    #Comblement lacunes
+    #suppression du plus grand
+    #Comblement des parcelles avec les parcelles Tampon
+
+    ####Extraction des parcelles tampon (polygonisation grossière)
+    # RasterBuffer 4m
+    # Invert data/noData
+    # Polygonisation
+    # Fill holes 200?
+    # simplification 0,25
+    # Calcul des indexs
+    #Suppression des artéfactes (s<75 ou s<100 et p2_a<75)
+
+    #Comblement du polygonne fin
+    #Affinage
+
+    #affectation des numéros
+
+    #verification des erreurs
+
 
 
 def delParcelles(layer):
