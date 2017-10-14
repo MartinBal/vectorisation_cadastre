@@ -4,6 +4,9 @@
 
 import processing
 import gdal
+import os
+import pickle
+from PyQt4.QtCore import *
 
 
 #rasterCadastre=QgsMapLayerRegistry.instance().mapLayersByName("26041010180000A010250002")[0]
@@ -36,12 +39,7 @@ def vectorisationCadastre(rasterCadastre, ref_projection='EPSG:3945' ):
     comblerLacunes(vecteurCadastre)
 
     #Suppression de la parcelle cadre
-    features=vecteurCadastre.getFeatures()
-    featCadre=features.next()
-    for f in features:
-        if f['surf']>featCadre['surf']: featCadre=f
-    vecteurCadastre.dataProvider().deleteFeatures([featCadre.id()])
-
+    supprimerCadre(vecteurCadastre)
 
     ####Extraction des parcelles tampon (polygonisation grossière)
     ref_vecteurCadastreTampon=vectorisationTampon(ref_rasterCadastre_reproj)
@@ -53,12 +51,18 @@ def vectorisationCadastre(rasterCadastre, ref_projection='EPSG:3945' ):
 
     ajoutParcellesManquantes(vecteurCadastre, vecteurCadastreTampon)
 
-    #Affinage
+    supprimerCadre(vecteurCadastre)
 
     #affectation des numéros
+    ###########
+    rasterCadastre.source()
+    ##################
 
-    #verification des erreurs
+    rasterCadastre_repro = iface.addVectorLayer(ref_rasterCadastre_reproj['OUTPUT'], "ParcellesCadastrales", "ogr")
+    pointsNum=numeroterParcelles(rasterCadastre_repro)
+    ref_vecteurCadastre=processing.runalg('qgis:joinattributesbylocation', vecteurCadastre,pointsNum,['contains'],0.0,0,None,1,None)
 
+    vecteurCadastreNumerote = iface.addVectorLayer(ref_vecteurCadastreTampon['OUTPUT_LAYER'], "ParcellesCadastralesNumerotees", "ogr")
 
 
 def netoyerParcelles(coucheParcelles, surfMax1=75, surfMax2=100, p2_aMax=75):
@@ -101,7 +105,7 @@ def comblerLacunes(vecteurCadastre, distBuff=0.75):
         else:
             vecteurCadastre.dataProvider().changeGeometryValues({ fid : tmp_geom })
 
-def vectorisationTampon(ref_rasterCadastre_reproj, distBuff=4, maxRing=250 ):
+def vectorisationTampon(ref_rasterCadastre_reproj, distBuff=4, maxRing=1000 ):
     '''fonction permettant de polygoniser le cadastre raster'''
 
     ref_rasterCadastre=processing.runalg('saga:gridbuffer', ref_rasterCadastre_reproj['OUTPUT'],distBuff,0,None)
@@ -144,3 +148,56 @@ def ajoutParcellesManquantes(cadastreIncomplet, parcellesTampon):
             f.setGeometry(tmp_geom)
             cadastreIncomplet.dataProvider().addFeatures([f])
             print(cadastreIncomplet.featureCount())
+
+def supprimerCadre(vecteurCadastre):
+    features=vecteurCadastre.getFeatures()
+    featCadre=features.next()
+    for f in features:
+        if f['surf']>featCadre['surf']: featCadre=f
+    vecteurCadastre.dataProvider().deleteFeatures([featCadre.id()])
+
+def numeroterParcelles(rasterReprojete, fichier='Feuille CL0180000A01 AULAN - 026/26041010180000A01.LOC', dossier='/home/martin/Documents/Permagro/Mission1_PALUD/donnees'):
+    os.chdir(dossier)
+    fichierLoc=open(fichier,'r')
+
+    chaine=fichierLoc.read()
+    listeChaines=chaine.split('\r\n')[:-1]
+
+    tabLoc=[c.split(',') for c in listeChaines]
+
+    emprise=rasterReprojete.extent().toString()
+    largeur = rasterReprojete.width()
+    hauteur = rasterReprojete.height()
+
+    #pbl de callage
+    indexCalageX=0.99
+    indexCalageY=1
+    largeur = largeur * indexCalageX
+    hauteur = hauteur * indexCalageY
+
+    tabEmprise=[angle.split(',') for angle in emprise.split(' : ')]
+
+    Coordonnees=[[((int(x) * (float(tabEmprise[1][0])-float(tabEmprise[0][0])))/largeur + float(tabEmprise[0][0])),\
+    ((int(y) * (float(tabEmprise[1][1])-float(tabEmprise[0][1])))/hauteur + float(tabEmprise[0][1])),\
+    n] \
+    for x,y,n in tabLoc]
+
+    ##Creation d'une couche de points
+    #Creation du champ:
+    fields = QgsFields()
+    fields.append(QgsField("NumParcelle", QVariant.String))
+
+    #Creation du writer de la couche
+    writer = QgsVectorFileWriter("ptsNumParcelles.shp", "UTF-8", fields, QGis.WKBPoint, QgsCoordinateReferenceSystem(2154), "ESRI Shapefile")
+
+    if writer.hasError() != QgsVectorFileWriter.NoError:
+        print "Error when creating shapefile: ",  w.errorMessage()
+
+    # Ajout des entitees:
+    for p in Coordonnees:
+        fet = QgsFeature()
+        fet.setGeometry(QgsGeometry.fromPoint(QgsPoint(p[0],p[1])))
+        fet.setAttributes([p[2]])
+        writer.addFeature(fet)
+    del writer
+    return QgsMapLayerRegistry.instance().mapLayersByName("ptsNumParcelles")[0]
