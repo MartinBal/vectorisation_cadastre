@@ -16,6 +16,10 @@ def vectorisationCadastre(rasterCadastre, ref_projection='EPSG:3945' ):
 
     #reprojection du cadastre en RGF93 - Lambert93 (EPSG : 2154)
     ref_rasterCadastre_reproj=processing.runalg('gdalogr:warpreproject', rasterCadastre,ref_projection,'EPSG:2154',None,0.0,0,5,4,75.0,6.0,1.0,False,0,False,None,None)
+    fileName = ref_rasterCadastre_reproj['OUTPUT']
+    fileInfo = QFileInfo('rasterReproj')
+    baseName = fileInfo.baseName()
+    rasterCadastre_reproj = QgsRasterLayer(fileName, baseName)
 
     #### Polygonisation finne
     ref_vecteurCadastre=processing.runalg('gdalogr:polygonize', ref_rasterCadastre_reproj['OUTPUT'],'DN',None)
@@ -44,7 +48,7 @@ def vectorisationCadastre(rasterCadastre, ref_projection='EPSG:3945' ):
     ####Extraction des parcelles tampon (polygonisation grossière)
     ref_vecteurCadastreTampon=vectorisationTampon(ref_rasterCadastre_reproj)
 
-    vecteurCadastreTampon = iface.addVectorLayer(ref_vecteurCadastreTampon['OUTPUT_LAYER'], "ParcellesCadastrales", "ogr")
+    vecteurCadastreTampon = iface.addVectorLayer(ref_vecteurCadastreTampon['OUTPUT_LAYER'], "ParcellesCadastralesTampon", "ogr")
     netoyerParcelles(vecteurCadastreTampon)
 
     #Comblement du polygonne fin avec parcelle tampon
@@ -55,14 +59,15 @@ def vectorisationCadastre(rasterCadastre, ref_projection='EPSG:3945' ):
 
     #affectation des numéros
     ###########
-    rasterCadastre.source()
+    #Pour trouver le Loc on peut utiliser
+    #rasterCadastre.source()
     ##################
 
-    rasterCadastre_repro = iface.addVectorLayer(ref_rasterCadastre_reproj['OUTPUT'], "ParcellesCadastrales", "ogr")
-    pointsNum=numeroterParcelles(rasterCadastre_repro)
-    ref_vecteurCadastre=processing.runalg('qgis:joinattributesbylocation', vecteurCadastre,pointsNum,['contains'],0.0,0,None,1,None)
+    ptsNumParcelles=numeroterParcelles(rasterCadastre_reproj)
+    affecterNum(vecteurCadastre, ptsNumParcelles)
+    #ref_vecteurCadastre=processing.runalg('qgis:joinattributesbylocation', vecteurCadastre,pointsNum,['contains'],0.0,0,None,1,None)
 
-    vecteurCadastreNumerote = iface.addVectorLayer(ref_vecteurCadastreTampon['OUTPUT_LAYER'], "ParcellesCadastralesNumerotees", "ogr")
+    #vecteurCadastreNumerote = iface.addVectorLayer(ref_vecteurCadastreTampon['OUTPUT_LAYER'], "ParcellesCadastralesNumerotees", "ogr")
 
 
 def netoyerParcelles(coucheParcelles, surfMax1=75, surfMax2=100, p2_aMax=75):
@@ -147,7 +152,6 @@ def ajoutParcellesManquantes(cadastreIncomplet, parcellesTampon):
             #parcellesTampon.dataProvider().changeGeometryValues({ f.id() : tmp_geom })
             f.setGeometry(tmp_geom)
             cadastreIncomplet.dataProvider().addFeatures([f])
-            print(cadastreIncomplet.featureCount())
 
 def supprimerCadre(vecteurCadastre):
     features=vecteurCadastre.getFeatures()
@@ -185,19 +189,36 @@ def numeroterParcelles(rasterReprojete, fichier='Feuille CL0180000A01 AULAN - 02
     ##Creation d'une couche de points
     #Creation du champ:
     fields = QgsFields()
-    fields.append(QgsField("NumParcelle", QVariant.String))
+    fields.append(QgsField("NumPar", QVariant.String))
 
     #Creation du writer de la couche
-    writer = QgsVectorFileWriter("ptsNumParcelles.shp", "UTF-8", fields, QGis.WKBPoint, QgsCoordinateReferenceSystem(2154), "ESRI Shapefile")
-
-    if writer.hasError() != QgsVectorFileWriter.NoError:
-        print "Error when creating shapefile: ",  w.errorMessage()
+    ptsNumParcelles=QgsVectorLayer("Point", "ptsNumParcelles", "memory")
+    ptsNumParcelles.startEditing()
+    ptsNumParcelles.dataProvider().addAttributes(fields)
+    ptsNumParcelles.commitChanges()
 
     # Ajout des entitees:
     for p in Coordonnees:
-        fet = QgsFeature()
-        fet.setGeometry(QgsGeometry.fromPoint(QgsPoint(p[0],p[1])))
-        fet.setAttributes([p[2]])
-        writer.addFeature(fet)
-    del writer
-    return QgsMapLayerRegistry.instance().mapLayersByName("ptsNumParcelles")[0]
+        feat = QgsFeature()
+        feat.setGeometry(QgsGeometry.fromPoint(QgsPoint(p[0],p[1])))
+        feat.setAttributes([p[2]])
+        ptsNumParcelles.dataProvider().addFeatures([feat])
+    return ptsNumParcelles
+
+def affecterNum(vecteurCadastre, ptsNumParcelles):
+    NumChamp=vecteurCadastre.pendingFields().count()
+
+    vecteurCadastre.startEditing()
+    vecteurCadastre.dataProvider().addAttributes([QgsField("NumPar", QVariant.String)])
+    vecteurCadastre.commitChanges()
+    dict={}
+
+    for f in ptsNumParcelles.getFeatures():
+        for g in vecteurCadastre.getFeatures():
+            if g.geometry().contains(f.geometry()):
+                dict[g.id()]={NumChamp : f["NumPar"] }
+                break
+                break
+    vecteurCadastre.startEditing()
+    vecteurCadastre.dataProvider().changeAttributeValues(dict)
+    vecteurCadastre.commitChanges()

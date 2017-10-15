@@ -2,7 +2,6 @@
 
 import os
 import pickle
-
 from PyQt4.QtCore import *
 
 ## Décallage dans les numéro de parcelles
@@ -33,7 +32,6 @@ def numeroterParcelles(rasterReprojete, fichier='Feuille CL0180000A01 AULAN - 02
 
     tabEmprise=[angle.split(',') for angle in emprise.split(' : ')]
 
-
     Coordonnees=[[((int(x) * (float(tabEmprise[1][0])-float(tabEmprise[0][0])))/largeur + float(tabEmprise[0][0])),\
     ((int(y) * (float(tabEmprise[1][1])-float(tabEmprise[0][1])))/hauteur + float(tabEmprise[0][1])),\
     n] \
@@ -50,14 +48,12 @@ def numeroterParcelles(rasterReprojete, fichier='Feuille CL0180000A01 AULAN - 02
     if writer.hasError() != QgsVectorFileWriter.NoError:
         print "Error when creating shapefile: ",  w.errorMessage()
 
-    # Ajout des entitÃ©es:
+    # Ajout des entitees:
     for p in Coordonnees:
         fet = QgsFeature()
         fet.setGeometry(QgsGeometry.fromPoint(QgsPoint(p[0],p[1])))
         fet.setAttributes([p[2]])
         writer.addFeature(fet)
-
-    # delete the writer to flush features to disk
     del writer
 
     #layer.dataProvider().addAttributes([QgsField("mytext", QVariant.String), QgsField("myint", QVariant.Int)])
