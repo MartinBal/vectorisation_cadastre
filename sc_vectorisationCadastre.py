@@ -11,7 +11,7 @@ from PyQt4.QtCore import *
 
 #rasterCadastre=QgsMapLayerRegistry.instance().mapLayersByName("26041010180000A010250002")[0]
 
-def vectorisationCadastre(rasterCadastre, ref_projection='EPSG:3945' ):
+def vectorisationCadastre(rasterCadastre, ref_projection='EPSG:3945', fichier='Feuille CL0180000A01 AULAN - 026/26041010180000A01.LOC', dossier='/home/martin/Documents/Permagro/Mission1_PALUD/donnees' ):
     '''fonction permettant de polygoniser le cadastre raster'''
 
     #reprojection du cadastre en RGF93 - Lambert93 (EPSG : 2154)
@@ -63,7 +63,7 @@ def vectorisationCadastre(rasterCadastre, ref_projection='EPSG:3945' ):
     #rasterCadastre.source()
     ##################
 
-    ptsNumParcelles=numeroterParcelles(rasterCadastre_reproj)
+    ptsNumParcelles=numeroterParcelles(rasterCadastre_reproj, fichier, dossier)
     affecterNum(vecteurCadastre, ptsNumParcelles)
     #ref_vecteurCadastre=processing.runalg('qgis:joinattributesbylocation', vecteurCadastre,pointsNum,['contains'],0.0,0,None,1,None)
 
