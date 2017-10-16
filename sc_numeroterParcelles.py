@@ -25,12 +25,21 @@ def numeroterParcelles(rasterReprojete, fichier='Feuille CL0180000A01 AULAN - 02
     emprise=rasterReprojete.extent().toString()
     largeur = rasterReprojete.width()
     hauteur = rasterReprojete.height()
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> 60ec34743644ca7910b10d5ea4b43a61186b5711
 
     #pbl de callage
     indexCalageX=0.99
     indexCalageY=1
     largeur = largeur * indexCalageX
     hauteur = hauteur * indexCalageY
+<<<<<<< HEAD
+=======
+>>>>>>> 78f5b1ce9416396adaa33ca6d4c031e73f247c8f
+>>>>>>> 60ec34743644ca7910b10d5ea4b43a61186b5711
 
 
     tabEmprise=[angle.split(',') for angle in emprise.split(' : ')]
@@ -51,14 +60,30 @@ def numeroterParcelles(rasterReprojete, fichier='Feuille CL0180000A01 AULAN - 02
     if writer.hasError() != QgsVectorFileWriter.NoError:
         print "Error when creating shapefile: ",  w.errorMessage()
 
+<<<<<<< HEAD
     # Ajout des entitees:
+=======
+<<<<<<< HEAD
+    # Ajout des entitees:
+=======
+    # Ajout des entitÃ©es:
+>>>>>>> 78f5b1ce9416396adaa33ca6d4c031e73f247c8f
+>>>>>>> 60ec34743644ca7910b10d5ea4b43a61186b5711
     for p in Coordonnees:
         fet = QgsFeature()
         fet.setGeometry(QgsGeometry.fromPoint(QgsPoint(p[0],p[1])))
         fet.setAttributes([p[2]])
         writer.addFeature(fet)
+<<<<<<< HEAD
 
     # delete the writer to flush features to disk
+=======
+<<<<<<< HEAD
+=======
+
+    # delete the writer to flush features to disk
+>>>>>>> 78f5b1ce9416396adaa33ca6d4c031e73f247c8f
+>>>>>>> 60ec34743644ca7910b10d5ea4b43a61186b5711
     del writer
 
     #layer.dataProvider().addAttributes([QgsField("mytext", QVariant.String), QgsField("myint", QVariant.Int)])
