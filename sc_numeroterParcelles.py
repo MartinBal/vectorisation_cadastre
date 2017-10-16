@@ -9,6 +9,8 @@ from PyQt4.QtCore import *
 ##  --> essayer par numpy?
 ##  --> essayer par indexage
 
+from PyQt4.QtCore import *
+
 #rasterReprojete=QgsMapLayerRegistry.instance().mapLayersByName("Reprojet")[0]
 
 def numeroterParcelles(rasterReprojete, fichier='Feuille CL0180000A01 AULAN - 026/26041010180000A01.LOC', dossier='/home/martin/Documents/Permagro/Mission1_PALUD/donnees'):
@@ -29,6 +31,7 @@ def numeroterParcelles(rasterReprojete, fichier='Feuille CL0180000A01 AULAN - 02
     indexCalageY=1
     largeur = largeur * indexCalageX
     hauteur = hauteur * indexCalageY
+
 
     tabEmprise=[angle.split(',') for angle in emprise.split(' : ')]
 
@@ -54,6 +57,8 @@ def numeroterParcelles(rasterReprojete, fichier='Feuille CL0180000A01 AULAN - 02
         fet.setGeometry(QgsGeometry.fromPoint(QgsPoint(p[0],p[1])))
         fet.setAttributes([p[2]])
         writer.addFeature(fet)
+
+    # delete the writer to flush features to disk
     del writer
 
     #layer.dataProvider().addAttributes([QgsField("mytext", QVariant.String), QgsField("myint", QVariant.Int)])
